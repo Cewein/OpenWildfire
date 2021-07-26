@@ -16,7 +16,7 @@ public class Domain : MonoBehaviour
     // Start is called before the first frame update
     public void create()
     {
-        domain.transform.localScale = new Vector3(blockCount.x / blockSize.x, blockCount.y / blockSize.y, blockCount.z / blockSize.z);
+        blockSize = new Vector3(domain.transform.localScale.x / blockCount.x, domain.transform.localScale.y / blockCount.y, domain.transform.localScale.z / blockCount.z);
 
         int blockTotalCount = blockCount.x * blockCount.y * blockCount.z;
         temperature = new float[blockTotalCount];
