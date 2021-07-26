@@ -4,19 +4,25 @@ using UnityEngine;
 
 public class Domain : MonoBehaviour
 {
-
+    [HideInInspector]
     public Vector3Int blockCount;
+    [HideInInspector]
+    public Vector3 gridSize;
+    [HideInInspector]
     public Vector3 blockSize;
-    public GameObject domain;
-
-    private float[] temperature;
-    private Vector3[] velocity;
-    private float[] smokeDensity;
+    [HideInInspector]
+    public float[] temperature;
+    [HideInInspector]
+    public Vector3[] velocity;
+    [HideInInspector]
+    public float[] smokeDensity;
 
     // Start is called before the first frame update
-    public void create()
+    public void create(Vector3Int bc, Vector3 gs)
     {
-        blockSize = new Vector3(domain.transform.localScale.x / blockCount.x, domain.transform.localScale.y / blockCount.y, domain.transform.localScale.z / blockCount.z);
+        blockCount = bc;
+        gridSize = gs;
+        blockSize = new Vector3(gridSize.x / blockCount.x, gridSize.y / blockCount.y, gridSize.z / blockCount.z);
 
         int blockTotalCount = blockCount.x * blockCount.y * blockCount.z;
         temperature = new float[blockTotalCount];
