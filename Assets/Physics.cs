@@ -37,6 +37,7 @@ public class Physics : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        //create both domain one for the GPU and one for the CPU
         domain.create(new Vector3Int(GRID_COUNT, GRID_COUNT, GRID_COUNT), new Vector3(GRID_SIZE, GRID_SIZE, GRID_SIZE));
         GPUdomain.create(new Vector3Int(GRID_COUNT, GRID_COUNT, GRID_COUNT));
     }
