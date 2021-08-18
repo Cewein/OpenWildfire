@@ -29,7 +29,7 @@ public class GPUDomain : MonoBehaviour
     }
 
 
-    // Start is called before the first frame update
+    //init each buffer of the domain
     public void create(Vector3Int gs)
     {
         gridSize = gs;
@@ -45,12 +45,7 @@ public class GPUDomain : MonoBehaviour
         smokeVoxelTransparency = new ComputeBuffer(flatten(gridSize), sizeof(float));
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
+    //clear all the buffers (aka free the gpu of data)
     public void clear()
     {
         temperature.Release();

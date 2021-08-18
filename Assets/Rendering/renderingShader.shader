@@ -52,16 +52,12 @@ Shader "Hidden/renderingShader"
             float3 minBounds;
             float3 maxBounds;
             int nbStep;
-            int dataLentghPerSide;
+            int unitPerSide;
             float threashold;
 
+            
+            uniform StructuredBuffer<float> smokeDensity;
 
-            // cf. Dave Hoskins https://www.shadertoy.com/view/4djSRW
-            float hash13(float3 p3) {
-                p3 = frac(p3 * .1031);
-                p3 += dot(p3, p3.yzx + 33.33);
-                return frac((p3.x + p3.y) * p3.z);
-            }
 
             //http://www.jcgt.org/published/0007/03/04/paper-lowres.pdf
             bool hitBox(float3 bmin, float3 bmax, float3 rayOrigin, float3 invRayDir, out float distToBox, out float distInsideBox)
@@ -80,74 +76,6 @@ Shader "Hidden/renderingShader"
 
                 return max(tmin.x, max(tmin.y, tmin.z)) <= min(tmax.x, min(tmax.y, tmax.z));
             }
-            /////////// THIS IS JUST TO TEST THE RENDERING PART THIS WILL BE GONE AFTER PROPRE SMOKE SIMULATION ///////
-
-            float len2Inf(float2 v) {
-                float2 d = abs(v);
-                return max(d.x, d.y);
-            }
-
-            // cf. iq https://www.shadertoy.com/view/4sfGzS
-            float hash(float3 p)  // replace this by something better
-            {
-                p = frac(p * 0.3183099 + .1);
-                p *= 17.0;
-                return frac(p.x * p.y * p.z * (p.x + p.y + p.z));
-            }
-
-            float noise(in float3 x)
-            {
-                float3 i = floor(x);
-                float3 f = frac(x);
-                f = f * f * (3.0 - 2.0 * f);
-
-                return lerp(lerp(lerp(hash(i + float3(0, 0, 0)),
-                    hash(i + float3(1, 0, 0)), f.x),
-                    lerp(hash(i + float3(0, 1, 0)),
-                        hash(i + float3(1, 1, 0)), f.x), f.y),
-                    lerp(lerp(hash(i + float3(0, 0, 1)),
-                        hash(i + float3(1, 0, 1)), f.x),
-                        lerp(hash(i + float3(0, 1, 1)),
-                            hash(i + float3(1, 1, 1)), f.x), f.y), f.z);
-            }
-
-            float fbm(float3 p) {
-                p *= 0.6;
-                float v = noise(p);
-
-                p *= 0.3;
-                v = lerp(v, noise(p), 0.7);
-
-                p *= 0.3;
-                v = lerp(v, noise(p), 0.7);
-
-                return v;
-            }
-
-            float fDensity(float3 lmn, float t) {
-                t += 32.0;
-
-                // Current position adjusted to [-1,1]^3
-                float3 uvw = (lmn - float3(63.5, 63.5, 63.5)) / 63.5;
-
-                // Value used to offset the main density
-                float d2 = fbm(float3(0.6, 0.3, 0.6) * lmn +
-                    float3(0.0, 8.0 * t, 0.0)
-                );
-
-                // Main density
-                float d1 = fbm( 0.3 * lmn +
-                    float3(0.0, 4.0 * t, 0.0) +
-                    5.0 * float3(cos(d2 * TWOPI), 2.0 * d2, sin(d2 * TWOPI))
-                );
-                d1 = pow(d1, lerp(4.0, 12.0, smoothstep(0.6, 1.0, len2Inf(uvw.xz))));
-
-                // Tweak density curve
-                float a = 0.02;
-                float b = 0.08;
-                return 0.02 + 0.2 * smoothstep(0.0, a, d1) + 0.5 * smoothstep(a, b, d1) + 0.18 * smoothstep(b, 1.0, d1);
-            }
-
 
             //compute the local Coord of a given point from the minBound
             //max bound is here to get the length of the axis x, y and z
@@ -158,14 +86,19 @@ Shader "Hidden/renderingShader"
 
                 float3 uvw = (insidePoint - minBound) / axisLength;
 
-                return uvw * (dataLentghPerSide - 1);
+                return uvw * (unitPerSide - 1);
 
+            }
+
+            uint flatten(uint3 coord)
+            {
+                return coord.x + unitPerSide * (coord.y + unitPerSide * coord.z);
             }
 
             void readLMN(in float3 lmn, out float density, out float lightAmount)
             {
                 lightAmount = 1.0;
-                density = fDensity(lmn, 0.0);
+                density = smokeDensity[flatten(uint3(lmn))];
             }
 
             float3 colormap(float t) {
@@ -175,8 +108,6 @@ Shader "Hidden/renderingShader"
             float4 blendOnto(float4 cFront, float4 cBehind) {
                 return cFront + (1.0 - cFront.a) * cBehind;
             }
-
-            /////////// THIS IS JUST TO TEST THE RENDERING PART THIS WILL BE GONE AFTER PROPRE SMOKE SIMULATION ///////
 
             float4 frag (v2f i) : SV_Target
             {

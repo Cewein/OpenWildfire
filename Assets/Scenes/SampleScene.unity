@@ -199,7 +199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Delta: 0.05
-  GRID_COUNT: 256
+  GRID_COUNT: 128
   GRID_SIZE: 1
   M_i: {x: 8, y: 8, z: 8}
   T_AMBIANT: 20
@@ -223,6 +223,7 @@ MonoBehaviour:
   - 1
   domain: {fileID: 144888393}
   GPUdomain: {fileID: 144888391}
+  physicsShader: {fileID: 7200000, guid: 72d896ed8993c1343bdd2a4a2f82f906, type: 3}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -395,7 +396,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   m_LocalRotation: {x: 0.15069406, y: -0.30483535, z: 0.048914034, w: 0.9391348}
-  m_LocalPosition: {x: 9, y: 9, z: -12}
+  m_LocalPosition: {x: 9, y: 9, z: -4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -470,8 +471,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1807446691}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.5, z: 0}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalPosition: {x: 18, y: 6, z: -9}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3

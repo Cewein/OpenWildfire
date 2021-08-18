@@ -21,7 +21,8 @@ public class Rendering : MonoBehaviour
         material.SetVector("maxBounds", domain.position + domain.localScale / 2);
         material.SetInt("nbStep", NumberOfStep);
         material.SetFloat("threashold", Mathf.Max(0.0f,threashold));
-        material.SetInt("dataLentghPerSide", physics.GRID_COUNT);
+        material.SetInt("unitPerSide", physics.GRID_COUNT);
+        material.SetBuffer("smokeDensity", physics.GPUdomain.smokeDensity);
 
         Graphics.Blit(source, destination, material);
     }

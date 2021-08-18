@@ -34,6 +34,9 @@ public class Physics : MonoBehaviour
     public Domain domain;
     public GPUDomain GPUdomain;
 
+    [Header("Domain and Simulation classes")]
+    public ComputeShader physicsShader;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -45,7 +48,17 @@ public class Physics : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        //get the number of thread for each axis
+        int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
+
+        //set the data for the computer shader
+        physicsShader.SetBuffer(0, "smokeDensity", GPUdomain.smokeDensity);
+        physicsShader.SetInt("unitPerSide", GRID_COUNT);
+        physicsShader.SetFloat("iTime", Time.time);
+
+        //launch the compute shader
+        physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
+
     }
 
     private void OnApplicationQuit()
