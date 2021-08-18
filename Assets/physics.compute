@@ -6,7 +6,28 @@
 #define HALFPI 1.570796326794896
 #define INV_SQRT_2 0.7071067811865476
 
+//pressure
 RWStructuredBuffer<float> smokeDensity;
+RWStructuredBuffer<float> smokeDensityNew;
+
+//temperature
+RWStructuredBuffer<float> temperature;
+RWStructuredBuffer<float> temperatureNew;
+
+//smoke velocity
+RWStructuredBuffer<float4> velocity;
+RWStructuredBuffer<float4> velocityNew;
+
+//intermediate velocity field
+RWStructuredBuffer<float4> ccvelocity;
+
+//smoke vorticity
+RWStructuredBuffer<float4> vorticity;
+
+//display property of smoke (radiance mean brigthness)
+RWStructuredBuffer<float> smokeVoxelRadiance;
+RWStructuredBuffer<float> smokeVoxelTransparency;
+
 int unitPerSide;
 float iTime;
 

@@ -52,9 +52,21 @@ public class Physics : MonoBehaviour
         int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
 
         //set the data for the computer shader
-        physicsShader.SetBuffer(0, "smokeDensity", GPUdomain.smokeDensity);
         physicsShader.SetInt("unitPerSide", GRID_COUNT);
         physicsShader.SetFloat("iTime", Time.time);
+
+        physicsShader.SetBuffer(0, "smokeDensity",    GPUdomain.smokeDensity);
+        physicsShader.SetBuffer(0, "smokeDensityNew", GPUdomain.smokeDensityNew);
+        physicsShader.SetBuffer(0, "temperature",     GPUdomain.temperature);
+        physicsShader.SetBuffer(0, "temperatureNew",  GPUdomain.temperatureNew);
+        physicsShader.SetBuffer(0, "velocity",        GPUdomain.velocity);
+        physicsShader.SetBuffer(0, "velocityNew",     GPUdomain.velocityNew);
+        physicsShader.SetBuffer(0, "ccvelocity",      GPUdomain.ccvelocity);
+        physicsShader.SetBuffer(0, "vorticity",       GPUdomain.vorticity);
+        physicsShader.SetBuffer(0, "smokeDensity",    GPUdomain.smokeDensity);
+        physicsShader.SetBuffer(0, "smokeDensity",    GPUdomain.smokeDensity);
+        physicsShader.SetBuffer(0, "smokeVoxelRadiance",     GPUdomain.smokeVoxelRadiance);
+        physicsShader.SetBuffer(0, "smokeVoxelTransparency", GPUdomain.smokeVoxelTransparency);
 
         //launch the compute shader
         physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);

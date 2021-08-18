@@ -101,8 +101,9 @@ Shader "Hidden/renderingShader"
                 density = smokeDensity[flatten(uint3(lmn))];
             }
 
+            //lut for smoke color map
             float3 colormap(float t) {
-                return .5 + .5 * cos(TWOPI * (t + float3(0.0, 0.1, 0.2)));
+                return .5 + .3 * cos(TWOPI * (t + float3(0.1, 0.1, 0.1)));
             }
 
             float4 blendOnto(float4 cFront, float4 cBehind) {
