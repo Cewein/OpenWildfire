@@ -1,11 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-#define PI 3.141592653589793
-#define TWOPI 6.283185307179586
-#define HALFPI 1.570796326794896
-#define INV_SQRT_2 0.7071067811865476
-
 //pressure
 RWStructuredBuffer<float> smokeDensity;
 RWStructuredBuffer<float> smokeDensityNew;
@@ -28,8 +23,11 @@ RWStructuredBuffer<float4> vorticity;
 RWStructuredBuffer<float> smokeVoxelRadiance;
 RWStructuredBuffer<float> smokeVoxelTransparency;
 
+//domain size
 int unitPerSide;
-float iTime;
+float tempAmbiant;
+float pressureAtmos;
+
 
 uint flatten(uint3 coord)
 {
@@ -38,33 +36,15 @@ uint flatten(uint3 coord)
 
 uint flattenPlusOne(uint3 coord)
 {
-    return coord.x + (unitPerSide + 1) * (coord.y + (unitPerSide + 1) * coord.z);
+    return coord.x + (unitPerSide+1) * (coord.y + (unitPerSide+1) * coord.z);
 }
-
-void computeTemperature()
-{
-
-}
-
-void computePressure()
-{
-
-}
-
-void computeBuoyancy()
-{
-
-}
-
-void computeIntermediateVelocityField()
-{
-
-}
-
-
 
 [numthreads(8,8,8)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    //smokeDensity[flatten(id)] = 
+    //init each buffer before the simulation
+    smokeDensity[flatten(id)] = max(10.0 - distance(id, uint3(unitPerSide / 2, 0, unitPerSide / 2)), pressureAtmos);
+    temperature[flatten(id)] = tempAmbiant;
+    velocity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 0.0);
+    vorticity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 0.0);
 }

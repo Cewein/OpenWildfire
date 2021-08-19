@@ -44,7 +44,7 @@ public class GPUDomain : MonoBehaviour
         smokeVoxelRadiance = new ComputeBuffer(flatten(gridSize), sizeof(float));
         smokeVoxelTransparency = new ComputeBuffer(flatten(gridSize), sizeof(float));
     }
-
+    
     //clear all the buffers (aka free the gpu of data)
     public void clear()
     {
@@ -58,5 +58,21 @@ public class GPUDomain : MonoBehaviour
         smokeDensityNew.Release();
         smokeVoxelRadiance.Release();
         smokeVoxelTransparency.Release();
+    }
+
+    public void setBuffers(ComputeShader shader)
+    {
+        shader.SetBuffer(0, "smokeDensity", smokeDensity);
+        shader.SetBuffer(0, "smokeDensityNew", smokeDensityNew);
+        shader.SetBuffer(0, "temperature", temperature);
+        shader.SetBuffer(0, "temperatureNew", temperatureNew);
+        shader.SetBuffer(0, "velocity", velocity);
+        shader.SetBuffer(0, "velocityNew", velocityNew);
+        shader.SetBuffer(0, "ccvelocity", ccvelocity);
+        shader.SetBuffer(0, "vorticity", vorticity);
+        shader.SetBuffer(0, "smokeDensity", smokeDensity);
+        shader.SetBuffer(0, "smokeDensity", smokeDensity);
+        shader.SetBuffer(0, "smokeVoxelRadiance", smokeVoxelRadiance);
+        shader.SetBuffer(0, "smokeVoxelTransparency", smokeVoxelTransparency);
     }
 }

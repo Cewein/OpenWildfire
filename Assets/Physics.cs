@@ -34,8 +34,28 @@ public class Physics : MonoBehaviour
     public Domain domain;
     public GPUDomain GPUdomain;
 
-    [Header("Domain and Simulation classes")]
+    [Header("Computing shader")]
+    public ComputeShader initPhysicsShader;
     public ComputeShader physicsShader;
+
+    private bool isPaused;
+
+
+    void setVariables(ComputeShader shader)
+    {
+        shader.SetInt("unitPerSide", GRID_COUNT);
+        shader.SetFloat("tempAmbiant", T_AMBIANT);
+        shader.SetFloat("pressureAtmos", P_ATM);
+    }
+
+    //allow to init or reset the simulation based on a compute shader
+    void initSimulation(ComputeShader shader)
+    {
+        int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
+        setVariables(shader);
+        GPUdomain.setBuffers(shader);
+        shader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -43,33 +63,41 @@ public class Physics : MonoBehaviour
         //create both domain one for the GPU and one for the CPU
         domain.create(new Vector3Int(GRID_COUNT, GRID_COUNT, GRID_COUNT), new Vector3(GRID_SIZE, GRID_SIZE, GRID_SIZE));
         GPUdomain.create(new Vector3Int(GRID_COUNT, GRID_COUNT, GRID_COUNT));
+
+        initSimulation(initPhysicsShader);
+
+        isPaused = false;
     }
 
     // Update is called once per frame
     void Update()
     {
-        //get the number of thread for each axis
-        int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
+        //pause the simulation if true, resume if false
+        if (Input.GetKeyDown(KeyCode.P))
+            isPaused = !isPaused;
+        if (isPaused) return;
 
-        //set the data for the computer shader
-        physicsShader.SetInt("unitPerSide", GRID_COUNT);
-        physicsShader.SetFloat("iTime", Time.time);
+        
+        if(Input.GetKeyDown(KeyCode.R))
+        {
+            //reset the simulation
+            initSimulation(initPhysicsShader);
+        }
+        else
+        {
+            //get the number of thread for each axis
+            int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
 
-        physicsShader.SetBuffer(0, "smokeDensity",    GPUdomain.smokeDensity);
-        physicsShader.SetBuffer(0, "smokeDensityNew", GPUdomain.smokeDensityNew);
-        physicsShader.SetBuffer(0, "temperature",     GPUdomain.temperature);
-        physicsShader.SetBuffer(0, "temperatureNew",  GPUdomain.temperatureNew);
-        physicsShader.SetBuffer(0, "velocity",        GPUdomain.velocity);
-        physicsShader.SetBuffer(0, "velocityNew",     GPUdomain.velocityNew);
-        physicsShader.SetBuffer(0, "ccvelocity",      GPUdomain.ccvelocity);
-        physicsShader.SetBuffer(0, "vorticity",       GPUdomain.vorticity);
-        physicsShader.SetBuffer(0, "smokeDensity",    GPUdomain.smokeDensity);
-        physicsShader.SetBuffer(0, "smokeDensity",    GPUdomain.smokeDensity);
-        physicsShader.SetBuffer(0, "smokeVoxelRadiance",     GPUdomain.smokeVoxelRadiance);
-        physicsShader.SetBuffer(0, "smokeVoxelTransparency", GPUdomain.smokeVoxelTransparency);
+            //set the data for the computer shader
+            physicsShader.SetFloat("iTime", Time.time);
 
-        //launch the compute shader
-        physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
+            setVariables(physicsShader);
+
+            GPUdomain.setBuffers(physicsShader);
+       
+            //launch the compute shader
+            physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
+        }
 
     }
 

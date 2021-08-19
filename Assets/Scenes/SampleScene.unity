@@ -223,6 +223,7 @@ MonoBehaviour:
   - 1
   domain: {fileID: 144888393}
   GPUdomain: {fileID: 144888391}
+  initPhysicsShader: {fileID: 7200000, guid: d49ae66bc3883f14cae47cdb5cecb26d, type: 3}
   physicsShader: {fileID: 7200000, guid: 72d896ed8993c1343bdd2a4a2f82f906, type: 3}
 --- !u!1 &705507993
 GameObject:
