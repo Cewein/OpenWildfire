@@ -44,8 +44,11 @@ public class Physics : MonoBehaviour
     void setVariables(ComputeShader shader)
     {
         shader.SetInt("unitPerSide", GRID_COUNT);
+        shader.SetFloat("unitSize", GRID_SIZE);
         shader.SetFloat("tempAmbiant", T_AMBIANT);
         shader.SetFloat("pressureAtmos", P_ATM);
+        shader.SetFloat("buoyAlpha", BUOY_ALPHA);
+        shader.SetFloat("buoyBeta", BUOY_BETA);
     }
 
     //allow to init or reset the simulation based on a compute shader
