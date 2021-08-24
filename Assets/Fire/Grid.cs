@@ -2,19 +2,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GPUDomain : MonoBehaviour
+public class Grid : MonoBehaviour
 {
     public ComputeBuffer temperature;
     public ComputeBuffer temperatureNew;
+
     public ComputeBuffer velocity;
     public ComputeBuffer velocityNew;
+
     public ComputeBuffer ccvelocity;
+
     public ComputeBuffer vorticity;
+
     public ComputeBuffer smokeDensity;
     public ComputeBuffer smokeDensityNew;
+
     public ComputeBuffer pressure;
-    public ComputeBuffer smokeVoxelRadiance;
-    public ComputeBuffer smokeVoxelTransparency;
+    public ComputeBuffer pressureNew;
 
     private Vector3Int gridSize;
 
@@ -41,10 +45,11 @@ public class GPUDomain : MonoBehaviour
         vorticity = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
         smokeDensity = new ComputeBuffer(flatten(gridSize), sizeof(float));
         smokeDensityNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
-        smokeVoxelRadiance = new ComputeBuffer(flatten(gridSize), sizeof(float));
-        smokeVoxelTransparency = new ComputeBuffer(flatten(gridSize), sizeof(float));
+        pressure = new ComputeBuffer(flatten(gridSize), sizeof(float));
+        pressureNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
+
     }
-    
+
     //clear all the buffers (aka free the gpu of data)
     public void clear()
     {
@@ -56,8 +61,6 @@ public class GPUDomain : MonoBehaviour
         vorticity.Release();
         smokeDensity.Release();
         smokeDensityNew.Release();
-        smokeVoxelRadiance.Release();
-        smokeVoxelTransparency.Release();
     }
 
     public void setBuffers(ComputeShader shader)
@@ -72,7 +75,8 @@ public class GPUDomain : MonoBehaviour
         shader.SetBuffer(0, "vorticity", vorticity);
         shader.SetBuffer(0, "smokeDensity", smokeDensity);
         shader.SetBuffer(0, "smokeDensity", smokeDensity);
-        shader.SetBuffer(0, "smokeVoxelRadiance", smokeVoxelRadiance);
-        shader.SetBuffer(0, "smokeVoxelTransparency", smokeVoxelTransparency);
+        shader.SetBuffer(0, "pressure", pressure);
+        shader.SetBuffer(0, "pressureNew", pressureNew);
+
     }
 }

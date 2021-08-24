@@ -22,7 +22,7 @@ public class Rendering : MonoBehaviour
         material.SetInt("nbStep", NumberOfStep);
         material.SetFloat("threashold", Mathf.Max(0.0f,threashold));
         material.SetInt("unitPerSide", physics.GRID_COUNT);
-        material.SetBuffer("smokeDensity", physics.GPUdomain.smokeDensity);
+        material.SetBuffer("smokeDensity", physics.GPUGrid.smokeDensity);
 
         Graphics.Blit(source, destination, material);
     }

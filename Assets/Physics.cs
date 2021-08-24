@@ -30,9 +30,8 @@ public class Physics : MonoBehaviour
                                          // heat capacity for constant volume, per volume 
 
     [Header("Domain and Simulation classes")]
-    //other
-    public Domain domain;
-    public GPUDomain GPUdomain;
+
+    public Grid GPUGrid;
 
     [Header("Computing shader")]
     public ComputeShader initPhysicsShader;
@@ -49,6 +48,7 @@ public class Physics : MonoBehaviour
         shader.SetFloat("pressureAtmos", P_ATM);
         shader.SetFloat("buoyAlpha", BUOY_ALPHA);
         shader.SetFloat("buoyBeta", BUOY_BETA);
+        shader.SetFloat("iDeltaTime", Time.deltaTime);
     }
 
     //allow to init or reset the simulation based on a compute shader
@@ -56,7 +56,7 @@ public class Physics : MonoBehaviour
     {
         int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
         setVariables(shader);
-        GPUdomain.setBuffers(shader);
+        GPUGrid.setBuffers(shader);
         shader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
     }
 
@@ -64,8 +64,7 @@ public class Physics : MonoBehaviour
     void Start()
     {
         //create both domain one for the GPU and one for the CPU
-        domain.create(new Vector3Int(GRID_COUNT, GRID_COUNT, GRID_COUNT), new Vector3(GRID_SIZE, GRID_SIZE, GRID_SIZE));
-        GPUdomain.create(new Vector3Int(GRID_COUNT, GRID_COUNT, GRID_COUNT));
+        GPUGrid.create(new Vector3Int(GRID_COUNT, GRID_COUNT, GRID_COUNT));
 
         initSimulation(initPhysicsShader);
 
@@ -96,7 +95,7 @@ public class Physics : MonoBehaviour
 
             setVariables(physicsShader);
 
-            GPUdomain.setBuffers(physicsShader);
+            GPUGrid.setBuffers(physicsShader);
        
             //launch the compute shader
             physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
@@ -106,6 +105,6 @@ public class Physics : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        GPUdomain.clear();
+        GPUGrid.clear();
     }
 }
