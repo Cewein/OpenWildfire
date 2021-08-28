@@ -18,7 +18,6 @@ public class Grid : MonoBehaviour
     public ComputeBuffer smokeDensityNew;
 
     public ComputeBuffer pressure;
-    public ComputeBuffer pressureNew;
 
     private Vector3Int gridSize;
 
@@ -46,7 +45,6 @@ public class Grid : MonoBehaviour
         smokeDensity = new ComputeBuffer(flatten(gridSize), sizeof(float));
         smokeDensityNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
         pressure = new ComputeBuffer(flatten(gridSize), sizeof(float));
-        pressureNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
 
     }
 
@@ -76,7 +74,6 @@ public class Grid : MonoBehaviour
         shader.SetBuffer(0, "smokeDensity", smokeDensity);
         shader.SetBuffer(0, "smokeDensity", smokeDensity);
         shader.SetBuffer(0, "pressure", pressure);
-        shader.SetBuffer(0, "pressureNew", pressureNew);
 
     }
 }

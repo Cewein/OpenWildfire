@@ -48,13 +48,13 @@ public class Physics : MonoBehaviour
         shader.SetFloat("pressureAtmos", P_ATM);
         shader.SetFloat("buoyAlpha", BUOY_ALPHA);
         shader.SetFloat("buoyBeta", BUOY_BETA);
-        shader.SetFloat("iDeltaTime", Time.deltaTime);
+        shader.SetFloat("iDeltaTime", Time.fixedDeltaTime);
     }
 
     //allow to init or reset the simulation based on a compute shader
     void initSimulation(ComputeShader shader)
     {
-        int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
+        int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 4.0f);
         setVariables(shader);
         GPUGrid.setBuffers(shader);
         shader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
@@ -88,7 +88,7 @@ public class Physics : MonoBehaviour
         else
         {
             //get the number of thread for each axis
-            int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 8.0f);
+            int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 4.0f);
 
             //set the data for the computer shader
             physicsShader.SetFloat("iTime", Time.time);

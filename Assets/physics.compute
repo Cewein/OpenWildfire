@@ -6,7 +6,7 @@
 #define HALFPI 1.570796326794896
 #define INV_SQRT_2 0.7071067811865476
 
-//pressure
+//density
 RWStructuredBuffer<float> smokeDensity;
 RWStructuredBuffer<float> smokeDensityNew;
 
@@ -24,9 +24,10 @@ RWStructuredBuffer<float4> ccvelocity;
 //smoke vorticity
 RWStructuredBuffer<float4> vorticity;
 
-//display property of smoke (radiance mean brigthness)
-RWStructuredBuffer<float> smokeVoxelRadiance;
-RWStructuredBuffer<float> smokeVoxelTransparency;
+//pressure
+RWStructuredBuffer<float> pressure;
+
+
 
 int unitPerSide;
 int unitSize;
@@ -37,93 +38,51 @@ float tempAmbiant;
 float buoyAlpha;
 float buoyBeta;
 
+int3 coord = int3(0, 0, 0);;
+
 int3 coordClip(int3 coord, int3 coordMax)
 {
     int3 newCoord = int3(0, 0, 0);
-    newCoord.x = coord.x > (coordMax.x - 1) ? (coordMax.x - 1) : (coord.x < 0 ? 0 : coord.x);
-    newCoord.x = coord.y > (coordMax.y - 1) ? (coordMax.y - 1) : (coord.y < 0 ? 0 : coord.y);
-    newCoord.x = coord.z > (coordMax.z - 1) ? (coordMax.z - 1) : (coord.z < 0 ? 0 : coord.z);
-
+    newCoord = max(min(coord, coordMax), newCoord);
     return newCoord;
 }
 
-int flatten(int3 coord, int size)
+int flatten(int3 coord)
 {
-    coord = coordClip(coord, int3(size, size, size));
+    coord = coordClip(coord, int3(unitPerSide, unitPerSide, unitPerSide));
     return coord.x + unitPerSide * (coord.y + unitPerSide * coord.z);
 }
 
-float4 advection(int3 coord, float h)
+int flattenPlusOne(int3 coord)
 {
-    int3 u = coord + int3(0, 1, 1);
-    int3 v = coord + int3(1, 0, 1);
-    int3 w = coord + int3(1, 1, 0);
-    int3 size = int3(unitPerSide + 1, unitPerSide + 1, unitPerSide + 1);
-    float4 uVec = velocity[flatten(u, size)] - velocity[flatten(u - int3(1, 0, 0), size)];
-    float4 vVec = velocity[flatten(v, size)] - velocity[flatten(v - int3(0, 1, 0), size)];
-    float4 wVec = velocity[flatten(w, size)] - velocity[flatten(w - int3(0, 0, 1), size)];
-
-    return (uVec - vVec - wVec) / h;
+    coord = coordClip(coord, int3(unitPerSide+1, unitPerSide + 1, unitPerSide + 1));
+    return coord.x + (unitPerSide + 1) * (coord.y + (unitPerSide + 1) * coord.z);
 }
 
-void computeTemperature(int3 coord)
+
+float3 advectVelocity()
 {
-    int3 size = int3(unitPerSide, unitPerSide, unitPerSide);
-    temperatureNew[flatten(coord, size)] = -advection(coord, unitSize) * temperature[flatten(coord, size)];
+
 }
 
-void computePressure(int3 coord)
+float3 computeExternalForces()
 {
-    int3 size = int3(unitPerSide, unitPerSide, unitPerSide);
-    smokeDensityNew[flatten(coord, size)] = -advection(coord, unitSize) * smokeDensity[flatten(coord, size)];
+    float boyancy = -buoyAlpha * pressure[flatten(coord)] + buoyBeta(temperature[flatten(Coord)] - tempAmbiant);
+
+    return float3(0.0, boyancy, 0.0);
 }
 
-//compute the Buoyancy from the pressure and temperature
-float4 computeBuoyancy(int3 u)
+float3 updatePressure()
 {
-    int3 size = int3(unitPerSide, unitPerSide, unitPerSide);
 
-    float pressure = smokeDensity[flatten(u, size)];
-    float temp = temperature[flatten(u, size)];
-    float3 z = float3(0.0, 0.0, 1.0);
-
-    float3 boyancy= -buoyAlpha * pressure * z + buoyBeta * (temp - tempAmbiant) * z;
-
-    return float4(boyancy, 1.0);
-} 
-
-float4 computeIntermediateVelocityField(int3 u)
-{
-    int3 sizeOne = int3(unitPerSide + 1, unitPerSide + 1, unitPerSide + 1);
-    return -advection(u, unitSize) * velocity[flatten(u, sizeOne)] + computeBuoyancy(u);
 }
 
-float4 pressureDerivative(int3 coord)
-{
-    int3 size = int3(unitPerSide, unitPerSide, unitPerSide);
+float3 project()
 
-    float px = smokeDensity[flatten(coord + int3(1, 0, 0),size)] - smokeDensity[flatten(coord - int3(1, 0, 0),size)];
-    float py = smokeDensity[flatten(coord + int3(0, 1, 0),size)] - smokeDensity[flatten(coord - int3(0, 1, 0),size)];
-    float pz = smokeDensity[flatten(coord + int3(0, 0, 1),size)] - smokeDensity[flatten(coord - int3(0, 0, 1),size)];
-    return float4(px, py, pz, 1.0);
-}
-
-void changeOldToNew(int3 coord)
-{
-    int3 sizeOne = int3(unitPerSide + 1, unitPerSide + 1, unitPerSide + 1);
-    int3 size = int3(unitPerSide, unitPerSide, unitPerSide);
-    smokeDensity[flatten(coord, size)] = smokeDensityNew[flatten(coord, size)];
-    temperature[flatten(coord, size)] = temperatureNew[flatten(coord, size)];
-    velocity[flatten(coord, sizeOne)] = velocityNew[flatten(coord, sizeOne)];
-}
-
-[numthreads(8,8,8)]
+[numthreads(4,4,4)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    int3 sizeOne = int3(unitPerSide + 1, unitPerSide + 1, unitPerSide + 1);
-    int3 size = int3(unitPerSide, unitPerSide, unitPerSide);
+    coord = int3(id);
+    advectVelocity()
 
-    velocityNew[flatten(id, sizeOne)] = computeIntermediateVelocityField(id) - iDeltaTime * pressureDerivative(id);
-
-    changeOldToNew(int3(id));
 }
