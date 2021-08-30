@@ -59,17 +59,106 @@ int flattenPlusOne(int3 coord)
     return coord.x + (unitPerSide + 1) * (coord.y + (unitPerSide + 1) * coord.z);
 }
 
+//axe 0 : x 
+//axe 1 : y
+//axe 2 : z
+float interpolate(int axe)
+{
+	float3 pos = worldToSelf(coord);
+
+	int3 intPos = int3(pos) / unitSize;
+
+	float scale = 1.0 / unitSize;
+	float3 fract = scale * (pos - intPos * unitSize);
+	
+
+	int i = intPos.x;
+	int j = intPos.y;
+	int k = intPos.z;
+
+	// Y @ low X, low Z:
+	float tmp1 = velocity[flattenPlusOne(int3(i, j, k))][axe];
+	float tmp2 = velocity[flattenPlusOne(int3(i, j + 1, k))][axe];
+	// Y @ high X, low Z:
+	float tmp3 = velocity[flattenPlusOne(int3(i + 1, j, k))][axe];
+	float tmp4 = velocity[flattenPlusOne(int3(i + 1, j + 1, k))][axe];
+
+	// Y @ low X, high Z:
+	float tmp5 = velocity[flattenPlusOne(int3(i, j, k + 1))][axe];
+	float tmp6 = velocity[flattenPlusOne(int3(i, j + 1, k + 1))][axe];
+	// Y @ high X, high Z:
+	float tmp7 = velocity[flattenPlusOne(int3(i + 1, j, k + 1))][axe];
+	float tmp8 = velocity[flattenPlusOne(int3(i + 1, j + 1, k + 1))][axe];
+
+	// Y @ low X, low Z
+	float tmp12 = lerp(tmp1, tmp2, fract.y);
+	// Y @ high X, low Z
+	float tmp34 = lerp(tmp3, tmp4, fract.y);
+
+	// Y @ low X, high Z
+	float tmp56 = lerp(tmp5, tmp6, fract.y);
+	// Y @ high X, high Z
+	float tmp78 = lerp(tmp7, tmp8, fract.y);
+
+	// X @ low Z
+	float tmp1234 = lerp(tmp12, tmp34, fract.x);
+	// X @ high Z							
+	float tmp5678 = lerp(tmp56, tmp78, fract.x);
+
+	// Z
+	float tmp = lerp(tmp1234, tmp5678, fract.z);
+	return tmp;
+}
+
+float3 getVelocity(float3 p)
+{
+	return float3(interpolate(0), interpolate(1) interpolate(2));
+}
 
 float3 advectVelocity()
 {
+	float3 curPosX = float3(coord.x * unitSize, (j + 0.5) * unitSize, (coord.z + 0.5) * unitSize);
+	float3 curPosY = float3((coord.x + 0.5) * unitSize, coord.y * unitSize, (coord.z + 0.5) * unitSize);
+	float3 curPosZ = float3((coord.x + 0.5) * unitSize, (coord.y + 0.5) * unitSize, coord.z * unitSize);
 
+	if (coord < int3(unitPerSide, unitPerSide, unitPerSide))
+	{
+		
+		float3 midPos = curPosX - getVelocity(curPos) * iDeltaTime / 2.0;
+		velocityNew[flattenPlusOne(coord)].x = mU.interpolate(curPosX - getVelocity(midPos) * iDeltaTime);
+
+		midPos = curPosY - getVelocity(curPosY) * iDeltaTime / 2.0;
+		velocityNew[flattenPlusOne(coord)].y = mU.interpolate(curPosY - getVelocity(midPos) * iDeltaTime);
+
+		midPos = curPosZ - getVelocity(curPosZ) * iDeltaTime / 2.0;
+		velocityNew[flattenPlusOne(coord)].z = mW.interpolate(curPosZ - getVelocity(midPos) * iDeltaTime);
+	}
+	else if (coord.x == unitPerSide)
+	{
+		float3 midPos = curPosX - getVelocity(curPosX) * iDeltaTime / 2.0;
+		velocityNew[flattenPlusOne(coord)].x = mU.interpolate(curPosX - getVelocity(midPos) * iDeltaTime);
+	}
+	else if (coord.y == unitPerSide)
+	{
+		float3 midPos = curPosY - getVelocity(curPosY) * iDeltaTime / 2.0;
+		velocityNew[flattenPlusOne(coord)].y = mU.interpolate(curPosY - getVelocity(midPos) * iDeltaTime);
+	}
+	else if (coord.z == unitPerSide)
+	{
+		float3 midPos = curPosZ - getVelocity(curPosZ) * iDeltaTime / 2.0;
+		velocityNew[flattenPlusOne(coord)].z = mW.interpolate(curPosZ - getVelocity(midPos) * iDeltaTime);
+	}
+	
 }
 
 float3 computeExternalForces()
 {
-    float boyancy = -buoyAlpha * pressure[flatten(coord)] + buoyBeta(temperature[flatten(Coord)] - tempAmbiant);
+	if (coord < int3(unitPerSide, unitPerSide, unitPerSide))
+	{
+		float boyancy = -buoyAlpha * pressure[flatten(coord)] + buoyBeta(temperature[flatten(Coord)] - tempAmbiant);
 
-    return float3(0.0, boyancy, 0.0);
+		velocityNew[flattenPlusOne(coord)] += iDeltaTime * float3(0.0, boyancy, 0.0);
+	}
 }
 
 float3 updatePressure()
@@ -77,12 +166,25 @@ float3 updatePressure()
 
 }
 
+float3 worldToSelf(float3 p)
+{
+	return min(max(0.0, p - unitSize * 0.5), float3(unitPerSide, unitPerSide, unitPerSide));
+}
+
+
 float3 project()
 
 [numthreads(4,4,4)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
+    //global coord for the whole shader
     coord = int3(id);
-    advectVelocity()
+
+    //first step
+    advectVelocity();
+    addExternalForces();
+
+    //second step
+    project();
 
 }

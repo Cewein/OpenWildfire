@@ -42,9 +42,24 @@ uint flattenPlusOne(uint3 coord)
 [numthreads(4,4,4)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
+
+    uint flat = flatten(id);
+    uint flatPlusOne = flattenPlusOne(id);
+
     //init each buffer before the simulation
-    smokeDensity[flatten(id)] = max(10.0 - distance(id, uint3(unitPerSide / 2, 0, unitPerSide / 2)), pressureAtmos); 
-    temperature[flatten(id)] = tempAmbiant;
-    velocity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 0.0);
-    vorticity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 0.0);
+    
+    //check if inbound
+    if (flat < pow(unitPerSide, 3))
+    {
+        smokeDensity[flatten(id)] = max(10.0 - distance(id, uint3(unitPerSide / 2, 0, unitPerSide / 2)), pressureAtmos);
+        temperature[flatten(id)] = tempAmbiant;
+
+        //another inbound cher
+        if (flat < pow((unitPerSide+1), 3))
+        {
+            velocity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 1.0);
+            vorticity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 1.0);
+        }
+    }
+
 }
