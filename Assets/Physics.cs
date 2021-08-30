@@ -48,7 +48,7 @@ public class Physics : MonoBehaviour
         shader.SetFloat("pressureAtmos", P_ATM);
         shader.SetFloat("buoyAlpha", BUOY_ALPHA);
         shader.SetFloat("buoyBeta", BUOY_BETA);
-        shader.SetFloat("iDeltaTime", Time.fixedDeltaTime);
+        shader.SetFloat("iDeltaTime", Delta);
     }
 
     //allow to init or reset the simulation based on a compute shader

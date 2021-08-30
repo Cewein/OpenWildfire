@@ -15,8 +15,13 @@ RWStructuredBuffer<float> temperature;
 RWStructuredBuffer<float> temperatureNew;
 
 //smoke velocity
-RWStructuredBuffer<float4> velocity;
-RWStructuredBuffer<float4> velocityNew;
+RWStructuredBuffer<float> velocityX;
+RWStructuredBuffer<float> velocityY;
+RWStructuredBuffer<float> velocityZ;
+
+RWStructuredBuffer<float> velocityNewX;
+RWStructuredBuffer<float> velocityNewY;
+RWStructuredBuffer<float> velocityNewZ;
 
 //intermediate velocity field
 RWStructuredBuffer<float4> ccvelocity;
@@ -27,18 +32,23 @@ RWStructuredBuffer<float4> vorticity;
 //pressure
 RWStructuredBuffer<float> pressure;
 
-
-
+//area of simulation
 int unitPerSide;
 int unitSize;
+
+//time
 float iTime;
 float iDeltaTime;
 
+//constants
 float tempAmbiant;
 float buoyAlpha;
 float buoyBeta;
 
-int3 coord = int3(0, 0, 0);;
+//global value used per shader
+int3 coord = int3(0, 0, 0);
+int flat;
+int flatPlusOne;
 
 int3 coordClip(int3 coord, int3 coordMax)
 {
@@ -59,7 +69,7 @@ int flattenPlusOne(int3 coord)
     return coord.x + (unitPerSide + 1) * (coord.y + (unitPerSide + 1) * coord.z);
 }
 
-float interpolate(RWStructuredBuffer<float> b, float3 p)
+float interpolate(RWStructuredBuffer<float> b, float3 p, bool plusOne)
 {
     //get the starting point of the cube
     float3 p0 = floor(p);
@@ -68,14 +78,37 @@ float interpolate(RWStructuredBuffer<float> b, float3 p)
     float3 deltaP = p0 - p;
     
     //get the 8 value in a cube
-    float x1 = b[flatten(int3(p0.x, p0.y, p0.z)];
-    float x2 = b[flatten(int3(p0.x + 1, p0.y, p0.z)];
-    float x3 = b[flatten(int3(p0.x, p0.y + 1, p0.z)];
-    float x4 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z)];
-    float x5 = b[flatten(int3(p0.x, p0.y, p0.z + 1)];
-    float x6 = b[flatten(int3(p0.x + 1, p0.y, p0.z + 1)];
-    float x7 = b[flatten(int3(p0.x, p0.y + 1, p0.z + 1)];
-    float x8 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z + 1)];
+    float x1 = 0.0;
+    float x2 = 0.0;
+    float x3 = 0.0;
+    float x4 = 0.0;
+    float x5 = 0.0;
+    float x6 = 0.0;
+    float x7 = 0.0;
+    float x8 = 0.0;
+
+    if (!plusOne)
+    {
+        x1 = b[flatten(int3(p0.x, p0.y, p0.z))];
+        x2 = b[flatten(int3(p0.x + 1, p0.y, p0.z))];
+        x3 = b[flatten(int3(p0.x, p0.y + 1, p0.z))];
+        x4 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z))];
+        x5 = b[flatten(int3(p0.x, p0.y, p0.z + 1))];
+        x6 = b[flatten(int3(p0.x + 1, p0.y, p0.z + 1))];
+        x7 = b[flatten(int3(p0.x, p0.y + 1, p0.z + 1))];
+        x8 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z + 1))];
+    }
+    else
+    {
+        x1 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z))];
+        x2 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z))];
+        x3 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z))];
+        x4 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z))];
+        x5 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z + 1))];
+        x6 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z + 1))];
+        x7 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z + 1))];
+        x8 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z + 1))];
+    }
 
     //lerp between the x axe
     float x12 = lerp(x1, x2, deltaP.x);
@@ -91,25 +124,98 @@ float interpolate(RWStructuredBuffer<float> b, float3 p)
     return lerp(x1234, x5678, deltaP.z);
 
 }
-
-float3 getVelocity(float3 p)
+//b is the buffer of the axe currently being use
+// 
+//axe is the axe being not the axe of averaging 
+//(i.e if you're averaging on the X axe then axe should be the Y or Z axe
+//
+// averageAxe is the axe being averaged
+float velocityAerage(RWStructuredBuffer<float> b, int3 axe, int3 averageAxe)
 {
-	return float3(interpolate(0), interpolate(1) interpolate(2));
+    float v = b[flatPlusOne];
+    v += b[flattenPlusOne(coord - axe)];
+    v += b[flattenPlusOne(coord + averageAxe - axe)];
+    v += b[flattenPlusOne(coord + averageAxe)];
+    v /= 4;
+    return v;
 }
 
 float3 advectVelocity()
 {
-	
+    float3 newVec = float3(0.0, 0.0, 0.0);
+
+    float3 actualCoord = float3(coord);
+
+    if (flatPlusOne < pow((unitPerSide + 1),3))
+    {
+        //advect vector X part
+        float x = velocityX[flatPlusOne];
+        float y = velocityAerage(velocityY, int3(0, 1, 0), int3(1, 0, 0));
+        float z = velocityAerage(velocityZ, int3(0, 0, 1), int3(1, 0, 0));
+        
+        //interpolate Z part
+        float3 OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
+        newVec.x = interpolate(velocityX, OldCoord, true);
+
+        //advect vector Y part
+        x = velocityAerage(velocityX, int3(1, 0, 0), int3(0, 1, 0));
+        y = velocityY[flatPlusOne];
+        z = velocityAerage(velocityZ, int3(0, 0, 1), int3(0, 1, 0));
+        
+        //interpolate Y part
+        OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
+        newVec.y = interpolate(velocityX, OldCoord, true);
+
+        //advect vector Z part
+        x = velocityAerage(velocityX, int3(1, 0, 0), int3(0, 0, 1));
+        y = velocityAerage(velocityY, int3(0, 1, 0), int3(0, 0, 1));
+        z = velocityZ[flatPlusOne];
+
+        //interpolate Z part
+        OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
+        newVec.z = interpolate(velocityX, OldCoord, true);
+    }
+
+    return newVec;
 }
 
-float3 computeExternalForces()
+float2 advectTempAndDensity()
 {
-	if (coord < int3(unitPerSide, unitPerSide, unitPerSide))
-	{
-		float boyancy = -buoyAlpha * pressure[flatten(coord)] + buoyBeta(temperature[flatten(Coord)] - tempAmbiant);
+    float newTemp = 0.0;
+    float newDensity = 0.0;
 
-		velocityNew[flattenPlusOne(coord)] += iDeltaTime * float3(0.0, boyancy, 0.0);
+    float3 actualCoord = float3(coord);
+
+    if (flatPlusOne < pow((unitPerSide + 1), 3))
+    {
+        float3 newVec = float3(0.0, 0.0, 0.0);
+
+        newVec.x = velocityX[flattenPlusOne(int3(coord.x - 1, coord.y, coord.z))] + velocityX[flatPlusOne]/2;
+        newVec.y = velocityY[flattenPlusOne(int3(coord.x, coord.y - 1, coord.z))] + velocityX[flatPlusOne]/2;
+        newVec.z = velocityZ[flattenPlusOne(int3(coord.x, coord.y, coord.z - 1))] + velocityX[flatPlusOne]/2;
+
+        float3 OldCoord = actualCoord - iDeltaTime * newVec;
+
+        newDensity = interpolate(smokeDensity, OldCoord, false);
+        newTemp = interpolate(temperature, OldCoord, false);
+    }
+
+    return float2(newDensity, newTemp);
+}
+
+float3 addExternalForces()
+{
+	if (flat < pow(unitPerSide, 3))
+	{
+		float boyancy = -buoyAlpha * pressure[flat] + buoyBeta*(temperature[flat] - tempAmbiant);
+
+        //todo add vorticity confinement
+
+
+		return iDeltaTime * float3(0.0, boyancy, 0.0);
 	}
+
+    return float3(0.0, 0.0, 0.0);
 }
 
 float3 updatePressure()
@@ -123,19 +229,28 @@ float3 worldToSelf(float3 p)
 }
 
 
-float3 project()
+//float3 project()
 
 [numthreads(4,4,4)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     //global coord for the whole shader
     coord = int3(id);
+    flat = flatten(id);
+    flatPlusOne = flattenPlusOne(id);
 
     //first step
-    advectVelocity();
-    addExternalForces();
+    float3 newVel = advectVelocity();
+    newVel += addExternalForces();
+    //project();
 
-    //second step
-    project();
+    //second part
+    float2 tempAndDens = advectTempAndDensity();
 
+    velocityX[flatPlusOne] = newVel.x;
+    velocityY[flatPlusOne] = newVel.y;
+    velocityZ[flatPlusOne] = newVel.z;
+
+    temperature[flat] = tempAndDens.x;
+    smokeDensity[flat] = tempAndDens.y;
 }

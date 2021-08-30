@@ -10,8 +10,13 @@ RWStructuredBuffer<float> temperature;
 RWStructuredBuffer<float> temperatureNew;
 
 //smoke velocity
-RWStructuredBuffer<float4> velocity;
-RWStructuredBuffer<float4> velocityNew;
+RWStructuredBuffer<float> velocityX;
+RWStructuredBuffer<float> velocityY;
+RWStructuredBuffer<float> velocityZ;
+
+RWStructuredBuffer<float> velocityNewX;
+RWStructuredBuffer<float> velocityNewY;
+RWStructuredBuffer<float> velocityNewZ;
 
 //intermediate velocity field
 RWStructuredBuffer<float4> ccvelocity;
@@ -53,13 +58,16 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     {
         smokeDensity[flatten(id)] = max(10.0 - distance(id, uint3(unitPerSide / 2, 0, unitPerSide / 2)), pressureAtmos);
         temperature[flatten(id)] = tempAmbiant;
+    }
 
-        //another inbound cher
-        if (flat < pow((unitPerSide+1), 3))
-        {
-            velocity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 1.0);
-            vorticity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 1.0);
-        }
+    //another inbound cher
+    if (flatPlusOne < pow((unitPerSide+1), 3))
+    {
+        velocityX[flattenPlusOne(id)] = 0.0;
+        velocityY[flattenPlusOne(id)] = 0.0;
+        velocityZ[flattenPlusOne(id)] = 0.0;
+
+        vorticity[flattenPlusOne(id)] = float4(0.0, 0.0, 0.0, 1.0);
     }
 
 }

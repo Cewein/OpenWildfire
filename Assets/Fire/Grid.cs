@@ -7,10 +7,14 @@ public class Grid : MonoBehaviour
     public ComputeBuffer temperature;
     public ComputeBuffer temperatureNew;
 
-    public ComputeBuffer velocity;
-    public ComputeBuffer velocityNew;
+    //we split the X,Y and Z component of the velocity because of the MAC GRID
+    public ComputeBuffer velocityX;
+    public ComputeBuffer velocityY;
+    public ComputeBuffer velocityZ;
 
-    public ComputeBuffer ccvelocity;
+    public ComputeBuffer velocityNewX;
+    public ComputeBuffer velocityNewY;
+    public ComputeBuffer velocityNewZ;
 
     public ComputeBuffer vorticity;
 
@@ -38,9 +42,12 @@ public class Grid : MonoBehaviour
         gridSize = gs;
         temperature = new ComputeBuffer(flatten(gridSize), sizeof(float));
         temperatureNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
-        velocity = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
-        velocityNew = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
-        ccvelocity = new ComputeBuffer(flatten(gridSize), sizeof(float) * 4);
+        velocityX = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
+        velocityY = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
+        velocityZ = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
+        velocityNewX = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
+        velocityNewY = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
+        velocityNewZ = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
         vorticity = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
         smokeDensity = new ComputeBuffer(flatten(gridSize), sizeof(float));
         smokeDensityNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
@@ -53,9 +60,12 @@ public class Grid : MonoBehaviour
     {
         temperature.Release();
         temperatureNew.Release();
-        velocity.Release();
-        velocityNew.Release();
-        ccvelocity.Release();
+        velocityX.Release();
+        velocityY.Release();
+        velocityZ.Release();
+        velocityNewX.Release();
+        velocityNewY.Release();
+        velocityNewZ.Release();
         vorticity.Release();
         smokeDensity.Release();
         smokeDensityNew.Release();
@@ -67,9 +77,12 @@ public class Grid : MonoBehaviour
         shader.SetBuffer(0, "smokeDensityNew", smokeDensityNew);
         shader.SetBuffer(0, "temperature", temperature);
         shader.SetBuffer(0, "temperatureNew", temperatureNew);
-        shader.SetBuffer(0, "velocity", velocity);
-        shader.SetBuffer(0, "velocityNew", velocityNew);
-        shader.SetBuffer(0, "ccvelocity", ccvelocity);
+        shader.SetBuffer(0, "velocityX", velocityX);
+        shader.SetBuffer(0, "velocityY", velocityY);
+        shader.SetBuffer(0, "velocityZ", velocityZ);
+        shader.SetBuffer(0, "velocityNewX", velocityNewX);
+        shader.SetBuffer(0, "velocityNewY", velocityNewY);
+        shader.SetBuffer(0, "velocityNewZ", velocityNewZ);
         shader.SetBuffer(0, "vorticity", vorticity);
         shader.SetBuffer(0, "smokeDensity", smokeDensity);
         shader.SetBuffer(0, "smokeDensity", smokeDensity);

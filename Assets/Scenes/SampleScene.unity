@@ -180,7 +180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Delta: 0.05
-  GRID_COUNT: 128
+  GRID_COUNT: 256
   GRID_SIZE: 1
   M_i: {x: 8, y: 8, z: 8}
   T_AMBIANT: 20
