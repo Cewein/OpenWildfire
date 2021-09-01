@@ -36,6 +36,7 @@ public class Physics : MonoBehaviour
     [Header("Computing shader")]
     public ComputeShader initPhysicsShader;
     public ComputeShader physicsShader;
+    public ComputeShader updateShader;
 
     private bool isPaused;
 
@@ -54,7 +55,7 @@ public class Physics : MonoBehaviour
     //allow to init or reset the simulation based on a compute shader
     void initSimulation(ComputeShader shader)
     {
-        int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 4.0f);
+        int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT + 1) / 4.0f);
         setVariables(shader);
         GPUGrid.setBuffers(shader);
         shader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
@@ -85,10 +86,10 @@ public class Physics : MonoBehaviour
             //reset the simulation
             initSimulation(initPhysicsShader);
         }
-        else
+        else if(true)
         {
             //get the number of thread for each axis
-            int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT - 1) / 4.0f);
+            int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT + 1) / 4.0f);
 
             //set the data for the computer shader
             physicsShader.SetFloat("iTime", Time.time);
@@ -98,7 +99,13 @@ public class Physics : MonoBehaviour
             GPUGrid.setBuffers(physicsShader);
        
             //launch the compute shader
-            physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
+            physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis); 
+
+            setVariables(updateShader);
+
+            GPUGrid.setBuffers(updateShader);
+
+            updateShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
         }
 
     }

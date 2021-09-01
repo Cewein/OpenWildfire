@@ -12,9 +12,7 @@ public class Grid : MonoBehaviour
     public ComputeBuffer velocityY;
     public ComputeBuffer velocityZ;
 
-    public ComputeBuffer velocityNewX;
-    public ComputeBuffer velocityNewY;
-    public ComputeBuffer velocityNewZ;
+    public ComputeBuffer velocityNew;
 
     public ComputeBuffer vorticity;
 
@@ -45,9 +43,7 @@ public class Grid : MonoBehaviour
         velocityX = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
         velocityY = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
         velocityZ = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
-        velocityNewX = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
-        velocityNewY = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
-        velocityNewZ = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
+        velocityNew = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
         vorticity = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
         smokeDensity = new ComputeBuffer(flatten(gridSize), sizeof(float));
         smokeDensityNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
@@ -63,9 +59,7 @@ public class Grid : MonoBehaviour
         velocityX.Release();
         velocityY.Release();
         velocityZ.Release();
-        velocityNewX.Release();
-        velocityNewY.Release();
-        velocityNewZ.Release();
+        velocityNew.Release();
         vorticity.Release();
         smokeDensity.Release();
         smokeDensityNew.Release();
@@ -80,13 +74,9 @@ public class Grid : MonoBehaviour
         shader.SetBuffer(0, "velocityX", velocityX);
         shader.SetBuffer(0, "velocityY", velocityY);
         shader.SetBuffer(0, "velocityZ", velocityZ);
-        shader.SetBuffer(0, "velocityNewX", velocityNewX);
-        shader.SetBuffer(0, "velocityNewY", velocityNewY);
-        shader.SetBuffer(0, "velocityNewZ", velocityNewZ);
-        shader.SetBuffer(0, "vorticity", vorticity);
-        shader.SetBuffer(0, "smokeDensity", smokeDensity);
-        shader.SetBuffer(0, "smokeDensity", smokeDensity);
-        shader.SetBuffer(0, "pressure", pressure);
+        shader.SetBuffer(0, "velocityNew", velocityNew);
+        //shader.SetBuffer(0, "vorticity", vorticity);
+        //shader.SetBuffer(0, "pressure", pressure);
 
     }
 }

@@ -132,21 +132,19 @@ Shader "Hidden/renderingShader"
                 for(int i = 0; i < nbStep && asHit; i++)
                 {
                     float3 localcoord = pointToLocalCoord(minBounds, maxBounds, rayOrigin + rayDir*dist);
-                    localcoord = localcoord - frac(localcoord);
+                    localcoord = floor(localcoord);
 
                     float density;
                     float lightAmount;
                     readLMN(localcoord, density, lightAmount);
 
-                    float3 cfrag = colormap(0.7 * density + 0.8);
-
+                    float3 cfrag = colormap(0.5 * density + 0.8);
 
                     float calpha = density * MAX_ALPHA_PER_UNIT_DIST * stepSize;
                     float4 ci = clamp(float4(cfrag * lightAmount, 1.0) * calpha, 0.0, 1.0);
                     col = blendOnto(col, ci);
 
                     dist += stepSize;
-
                 }
 
                 float finalA = clamp(col.a / QUIT_ALPHA, 0.0, 1.0);

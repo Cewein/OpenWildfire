@@ -3,25 +3,23 @@
 
 //pressure
 RWStructuredBuffer<float> smokeDensity;
+RWStructuredBuffer<float> smokeDensityNew;
 
 //temperature
 RWStructuredBuffer<float> temperature;
+RWStructuredBuffer<float> temperatureNew;
 
 //smoke velocity
 RWStructuredBuffer<float> velocityX;
 RWStructuredBuffer<float> velocityY;
 RWStructuredBuffer<float> velocityZ;
 
-
-//smoke vorticity
-//RWStructuredBuffer<float4> vorticity;
-
+RWStructuredBuffer<float4> velocityNew;
 
 //domain size
 int unitPerSide;
 float tempAmbiant;
 float pressureAtmos;
-
 
 int3 coordClip(int3 coord, int3 coordMax)
 {
@@ -50,34 +48,33 @@ bool check(int3 id)
 
 bool checkPlusOne(int3 id)
 {
-    if (id.x < (unitPerSide+1) && id.y < (unitPerSide + 1) && id.z < (unitPerSide + 1)) return true;
+    if (id.x < (unitPerSide + 1) && id.y < (unitPerSide + 1) && id.z < (unitPerSide + 1)) return true;
     return false;
 }
 
-[numthreads(4,4,4)]
+
+[numthreads(4, 4, 4)]
 void CSMain (int3 id : SV_DispatchThreadID)
 {
 
-    uint flat = flatten(id);
-    uint flatPlusOne = flattenPlusOne(id);
+    int flat = flatten(int3(id));
+    int flatPlusOne = flattenPlusOne(int3(id));
 
     //init each buffer before the simulation
-    
+
     //check if inbound
     if (check(id))
     {
-        smokeDensity[flat] = step(0, 10.0 - distance(float3(id), float3(unitPerSide / 2, 0, unitPerSide / 2)));
-        temperature[flat] = tempAmbiant;
+        smokeDensity[flat] = smokeDensityNew[flat];
+        temperature[flat] = temperatureNew[flat];
     }
 
     //another inbound cher
     if (checkPlusOne(id))
     {
-        velocityX[flatPlusOne] = 0.0;
-        velocityY[flatPlusOne] = 0.0;
-        velocityZ[flatPlusOne] = 0.0;
-
-        //vorticity[flatPlusOne] = float4(0.0, 0.0, 0.0, 1.0);
+        velocityX[flatPlusOne] = velocityNew[flatPlusOne].x;
+        velocityY[flatPlusOne] = velocityNew[flatPlusOne].y;
+        velocityZ[flatPlusOne] = velocityNew[flatPlusOne].z;
     }
 
 }

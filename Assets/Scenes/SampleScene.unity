@@ -180,7 +180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Delta: 0.05
-  GRID_COUNT: 256
+  GRID_COUNT: 64
   GRID_SIZE: 1
   M_i: {x: 8, y: 8, z: 8}
   T_AMBIANT: 20
@@ -205,6 +205,7 @@ MonoBehaviour:
   GPUGrid: {fileID: 144888391}
   initPhysicsShader: {fileID: 7200000, guid: d49ae66bc3883f14cae47cdb5cecb26d, type: 3}
   physicsShader: {fileID: 7200000, guid: 72d896ed8993c1343bdd2a4a2f82f906, type: 3}
+  updateShader: {fileID: 7200000, guid: e440519f895017349b4c2cab846d576e, type: 3}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -296,7 +297,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
 --- !u!1 &963194225
 GameObject:
@@ -381,7 +382,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 18.232, y: -35.966, z: 0}
 --- !u!114 &963194229
 MonoBehaviour:
