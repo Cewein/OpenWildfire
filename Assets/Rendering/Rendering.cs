@@ -7,6 +7,7 @@ public class Rendering : MonoBehaviour
 {
     public Shader display;
     public Transform domain;
+    public bool showTemperature = false;
     public int NumberOfStep = 5;
     public float threashold = 0.3f;
     public Physics physics;
@@ -22,7 +23,8 @@ public class Rendering : MonoBehaviour
         material.SetInt("nbStep", NumberOfStep);
         material.SetFloat("threashold", Mathf.Max(0.0f,threashold));
         material.SetInt("unitPerSide", physics.GRID_COUNT);
-        material.SetBuffer("smokeDensity", physics.GPUGrid.smokeDensity);
+        material.SetBuffer("TempAndDensity", physics.GPUGrid.TempAndDensity);
+        material.SetInt("showTemp", showTemperature ? 1:0);
 
         Graphics.Blit(source, destination, material);
     }

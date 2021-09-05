@@ -86,7 +86,7 @@ public class Physics : MonoBehaviour
             //reset the simulation
             initSimulation(initPhysicsShader);
         }
-        else if(true)
+        else
         {
             //get the number of thread for each axis
             int numThreadPerAxis = Mathf.CeilToInt((GRID_COUNT + 1) / 4.0f);
@@ -95,16 +95,12 @@ public class Physics : MonoBehaviour
             physicsShader.SetFloat("iTime", Time.time);
 
             setVariables(physicsShader);
-
             GPUGrid.setBuffers(physicsShader);
-       
             //launch the compute shader
             physicsShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis); 
 
             setVariables(updateShader);
-
             GPUGrid.setBuffers(updateShader);
-
             updateShader.Dispatch(0, numThreadPerAxis, numThreadPerAxis, numThreadPerAxis);
         }
 

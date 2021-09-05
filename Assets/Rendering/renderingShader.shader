@@ -55,8 +55,10 @@ Shader "Hidden/renderingShader"
             int unitPerSide;
             float threashold;
 
+            bool showTemp;
+
             
-            uniform StructuredBuffer<float> smokeDensity;
+            uniform StructuredBuffer<float4> TempAndDensity;
 
 
             //http://www.jcgt.org/published/0007/03/04/paper-lowres.pdf
@@ -98,12 +100,15 @@ Shader "Hidden/renderingShader"
             void readLMN(in float3 lmn, out float density, out float lightAmount)
             {
                 lightAmount = 1.0;
-                density = smokeDensity[flatten(uint3(lmn))];
+                if(showTemp)
+                    density = TempAndDensity[flatten(uint3(lmn))].x;
+                else
+                    density = TempAndDensity[flatten(uint3(lmn))].y;
             }
 
             //lut for smoke color map
             float3 colormap(float t) {
-                return .5 + .3 * cos(TWOPI * (t + float3(0.1, 0.1, 0.1)));
+                return float3(0.0,0.1,0.7) + .5 * cos(TWOPI * (t + float3(0.9, 0.1, 0.0)));
             }
 
             float4 blendOnto(float4 cFront, float4 cBehind) {
@@ -138,7 +143,12 @@ Shader "Hidden/renderingShader"
                     float lightAmount;
                     readLMN(localcoord, density, lightAmount);
 
-                    float3 cfrag = colormap(0.5 * density + 0.8);
+                    float3 cfrag = float3(0.0, 0.0, 0.0);
+
+                    if (showTemp)
+                        cfrag = colormap(0.5 * density + 0.8);
+                    else
+                        cfrag = colormap(0.5 * density + 0.8);
 
                     float calpha = density * MAX_ALPHA_PER_UNIT_DIST * stepSize;
                     float4 ci = clamp(float4(cfrag * lightAmount, 1.0) * calpha, 0.0, 1.0);

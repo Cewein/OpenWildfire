@@ -6,18 +6,13 @@
 #define HALFPI 1.570796326794896
 #define INV_SQRT_2 0.7071067811865476
 
-//density
-RWStructuredBuffer<float> smokeDensity;
-RWStructuredBuffer<float> smokeDensityNew;
-
-//temperature
-RWStructuredBuffer<float> temperature;
-RWStructuredBuffer<float> temperatureNew;
+//temperature and density
+//x and y are temperature and density
+//z and w are new temperature and new density
+RWStructuredBuffer<float4> TempAndDensity;
 
 //smoke velocity
-RWStructuredBuffer<float> velocityX;
-RWStructuredBuffer<float> velocityY;
-RWStructuredBuffer<float> velocityZ;
+RWStructuredBuffer<float4> velocity;
 
 RWStructuredBuffer<float4> velocityNew;
 
@@ -40,7 +35,7 @@ int flat;
 int flatPlusOne;
 
 
-//commun
+// coord test and flatten function //
 int3 coordClip(int3 p, int3 coordMax)
 {
     int3 newCoord = int3(0, 0, 0);
@@ -72,7 +67,12 @@ bool checkPlusOne(int3 id)
     return false;
 }
 
-float interpolate(RWStructuredBuffer<float> b, float3 p, bool plusOne)
+//trilinear interpolation based on float 4 structure but only use 1 dimention.
+//b is the float 4 bufer
+//p is the point where you want to sample and interpolate
+//axe is the dimension you want to interpolate
+//plusOne is to use the array length or the array length + 1
+float interpolate(RWStructuredBuffer<float4> b, float3 p, int axe,bool plusOne)
 {
     //get the starting point of the cube
     float3 p0 = floor(p);
@@ -92,25 +92,25 @@ float interpolate(RWStructuredBuffer<float> b, float3 p, bool plusOne)
 
     if (!plusOne)
     {
-        x1 = b[flatten(int3(p0.x, p0.y, p0.z))];
-        x2 = b[flatten(int3(p0.x + 1, p0.y, p0.z))];
-        x3 = b[flatten(int3(p0.x, p0.y + 1, p0.z))];
-        x4 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z))];
-        x5 = b[flatten(int3(p0.x, p0.y, p0.z + 1))];
-        x6 = b[flatten(int3(p0.x + 1, p0.y, p0.z + 1))];
-        x7 = b[flatten(int3(p0.x, p0.y + 1, p0.z + 1))];
-        x8 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z + 1))];
+        x1 = b[flatten(int3(p0.x, p0.y, p0.z))][axe];
+        x2 = b[flatten(int3(p0.x + 1, p0.y, p0.z))][axe];
+        x3 = b[flatten(int3(p0.x, p0.y + 1, p0.z))][axe];
+        x4 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z))][axe];
+        x5 = b[flatten(int3(p0.x, p0.y, p0.z + 1))][axe];
+        x6 = b[flatten(int3(p0.x + 1, p0.y, p0.z + 1))][axe];
+        x7 = b[flatten(int3(p0.x, p0.y + 1, p0.z + 1))][axe];
+        x8 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z + 1))][axe];
     }
     else
     {
-        x1 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z))];
-        x2 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z))];
-        x3 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z))];
-        x4 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z))];
-        x5 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z + 1))];
-        x6 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z + 1))];
-        x7 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z + 1))];
-        x8 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z + 1))];
+        x1 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z))][axe];
+        x2 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z))][axe];
+        x3 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z))][axe];
+        x4 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z))][axe];
+        x5 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z + 1))][axe];
+        x6 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z + 1))][axe];
+        x7 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z + 1))][axe];
+        x8 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z + 1))][axe];
     }
 
     //lerp between the x axe
@@ -133,12 +133,14 @@ float interpolate(RWStructuredBuffer<float> b, float3 p, bool plusOne)
 //(i.e if you're averaging on the X axe then axe should be the Y or Z axe
 //
 // averageAxe is the axe being averaged
-float velocityAerage(RWStructuredBuffer<float> b, int3 axe, int3 averageAxe)
+// dim is the dimension use in the averaging
+// we have to do that since the MAC grid is fully integrated into a float4 array buffer
+float velocityAerage(RWStructuredBuffer<float4> b, int3 axe, int3 averageAxe,int dim)
 {
-    float v = b[flatPlusOne];
-    v += b[flattenPlusOne(coord - axe)];
-    v += b[flattenPlusOne(coord + averageAxe - axe)];
-    v += b[flattenPlusOne(coord + averageAxe)];
+    float v = b[flatPlusOne][dim];
+    v += b[flattenPlusOne(coord - axe)][dim];
+    v += b[flattenPlusOne(coord + averageAxe - axe)][dim];
+    v += b[flattenPlusOne(coord + averageAxe)][dim];
     v /= 4;
     return v;
 }
@@ -152,31 +154,31 @@ float3 advectVelocity()
     if (checkPlusOne(coord))
     {
         //advect vector X part
-        float x = velocityX[flatPlusOne];
-        float y = velocityAerage(velocityY, int3(0, 1, 0), int3(1, 0, 0));
-        float z = velocityAerage(velocityZ, int3(0, 0, 1), int3(1, 0, 0));
+        float x = velocity[flatPlusOne].x;
+        float y = velocityAerage(velocity, int3(0, 1, 0), int3(1, 0, 0),1);
+        float z = velocityAerage(velocity, int3(0, 0, 1), int3(1, 0, 0),2);
         
         //interpolate Z part
         float3 OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
-        newVec.x = interpolate(velocityX, OldCoord, true);
+        newVec.x = interpolate(velocity, OldCoord,0, true);
 
         //advect vector Y part
-        x = velocityAerage(velocityX, int3(1, 0, 0), int3(0, 1, 0));
-        y = velocityY[flatPlusOne];
-        z = velocityAerage(velocityZ, int3(0, 0, 1), int3(0, 1, 0));
+        x = velocityAerage(velocity, int3(1, 0, 0), int3(0, 1, 0),0);
+        y = velocity[flatPlusOne].y;
+        z = velocityAerage(velocity, int3(0, 0, 1), int3(0, 1, 0),2);
         
         //interpolate Y part
         OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
-        newVec.y = interpolate(velocityY, OldCoord, true);
+        newVec.y = interpolate(velocity, OldCoord,1, true);
 
         //advect vector Z part
-        x = velocityAerage(velocityX, int3(1, 0, 0), int3(0, 0, 1));
-        y = velocityAerage(velocityY, int3(0, 1, 0), int3(0, 0, 1));
-        z = velocityZ[flatPlusOne];
+        x = velocityAerage(velocity, int3(1, 0, 0), int3(0, 0, 1),0);
+        y = velocityAerage(velocity, int3(0, 1, 0), int3(0, 0, 1),1);
+        z = velocity[flatPlusOne].z;
 
         //interpolate Z part
         OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
-        newVec.z = interpolate(velocityZ, OldCoord, true);
+        newVec.z = interpolate(velocity, OldCoord,2, true);
     }
 
     return newVec;
@@ -193,24 +195,24 @@ float2 advectTempAndDensity()
     {
         float3 newVec = float3(0.0, 0.0, 0.0);
 
-        newVec.x = velocityX[flattenPlusOne(int3(coord.x - 1, coord.y, coord.z))] + velocityX[flatPlusOne]/2;
-        newVec.y = velocityY[flattenPlusOne(int3(coord.x, coord.y - 1, coord.z))] + velocityY[flatPlusOne]/2;
-        newVec.z = velocityZ[flattenPlusOne(int3(coord.x, coord.y, coord.z - 1))] + velocityZ[flatPlusOne]/2;
+        newVec.x = velocity[flattenPlusOne(int3(coord.x - 1, coord.y, coord.z))].x + velocity[flattenPlusOne(int3(coord.x + 1, coord.y, coord.z))].x / 2;
+        newVec.y = velocity[flattenPlusOne(int3(coord.x, coord.y - 1, coord.z))].y + velocity[flattenPlusOne(int3(coord.x, coord.y + 1, coord.z))].y / 2;
+        newVec.z = velocity[flattenPlusOne(int3(coord.x, coord.y, coord.z - 1))].z + velocity[flattenPlusOne(int3(coord.x, coord.y, coord.z + 1))].z /2;
 
         float3 OldCoord = actualCoord - iDeltaTime * newVec;
 
-        newDensity = interpolate(smokeDensity, OldCoord, false);
-        newTemp = interpolate(temperature, OldCoord, false);
+        newTemp = interpolate(TempAndDensity, OldCoord, 0, false);
+        newDensity = interpolate(TempAndDensity, OldCoord, 1, false);
     }
 
-    return float2(newDensity, newTemp);
+    return float2(newTemp, newDensity);
 }
 
 float3 addExternalForces()
 {
 	if (check(coord))
 	{
-		float boyancy = /*-buoyAlpha * pressure[flat] +*/ buoyBeta * (temperature[flat] - tempAmbiant);
+		float boyancy = /*-buoyAlpha * pressure[flat] +*/ buoyBeta * (TempAndDensity[flat].x - tempAmbiant);
 
         //todo add vorticity confinement
 
@@ -252,7 +254,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     if (check(coord))
     {
-        smokeDensityNew[flat] = tempAndDens.x;
-        temperatureNew[flat] = tempAndDens.y;
+        TempAndDensity[flat].z = tempAndDens.x; //temp
+        TempAndDensity[flat].w = tempAndDens.y; //density
     }
 }

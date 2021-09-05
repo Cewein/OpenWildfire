@@ -4,20 +4,13 @@ using UnityEngine;
 
 public class Grid : MonoBehaviour
 {
-    public ComputeBuffer temperature;
-    public ComputeBuffer temperatureNew;
+    public ComputeBuffer TempAndDensity;
 
-    //we split the X,Y and Z component of the velocity because of the MAC GRID
-    public ComputeBuffer velocityX;
-    public ComputeBuffer velocityY;
-    public ComputeBuffer velocityZ;
+    public ComputeBuffer velocity;
 
     public ComputeBuffer velocityNew;
 
     public ComputeBuffer vorticity;
-
-    public ComputeBuffer smokeDensity;
-    public ComputeBuffer smokeDensityNew;
 
     public ComputeBuffer pressure;
 
@@ -38,15 +31,10 @@ public class Grid : MonoBehaviour
     public void create(Vector3Int gs)
     {
         gridSize = gs;
-        temperature = new ComputeBuffer(flatten(gridSize), sizeof(float));
-        temperatureNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
-        velocityX = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
-        velocityY = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
-        velocityZ = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float));
+        TempAndDensity = new ComputeBuffer(flatten(gridSize), sizeof(float) * 4);
+        velocity = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
         velocityNew = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
         vorticity = new ComputeBuffer(flattenPlusOne(gridSize), sizeof(float) * 4);
-        smokeDensity = new ComputeBuffer(flatten(gridSize), sizeof(float));
-        smokeDensityNew = new ComputeBuffer(flatten(gridSize), sizeof(float));
         pressure = new ComputeBuffer(flatten(gridSize), sizeof(float));
 
     }
@@ -54,29 +42,20 @@ public class Grid : MonoBehaviour
     //clear all the buffers (aka free the gpu of data)
     public void clear()
     {
-        temperature.Release();
-        temperatureNew.Release();
-        velocityX.Release();
-        velocityY.Release();
-        velocityZ.Release();
+        TempAndDensity.Release();
+        velocity.Release();
+        pressure.Release();
         velocityNew.Release();
         vorticity.Release();
-        smokeDensity.Release();
-        smokeDensityNew.Release();
     }
 
     public void setBuffers(ComputeShader shader)
     {
-        shader.SetBuffer(0, "smokeDensity", smokeDensity);
-        shader.SetBuffer(0, "smokeDensityNew", smokeDensityNew);
-        shader.SetBuffer(0, "temperature", temperature);
-        shader.SetBuffer(0, "temperatureNew", temperatureNew);
-        shader.SetBuffer(0, "velocityX", velocityX);
-        shader.SetBuffer(0, "velocityY", velocityY);
-        shader.SetBuffer(0, "velocityZ", velocityZ);
+        shader.SetBuffer(0, "velocity", velocity);
+        shader.SetBuffer(0, "TempAndDensity", TempAndDensity);
         shader.SetBuffer(0, "velocityNew", velocityNew);
-        //shader.SetBuffer(0, "vorticity", vorticity);
-        //shader.SetBuffer(0, "pressure", pressure);
+        shader.SetBuffer(0, "vorticity", vorticity);
+        shader.SetBuffer(0, "pressure", pressure);
 
     }
 }
