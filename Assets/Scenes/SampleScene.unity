@@ -180,7 +180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Delta: 0.05
-  GRID_COUNT: 64
+  GRID_COUNT: 128
   GRID_SIZE: 1
   M_i: {x: 8, y: 8, z: 8}
   T_AMBIANT: 20
@@ -417,6 +417,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   display: {fileID: 4800000, guid: 6b32df1b788c68e4d908ae64fbacffca, type: 3}
   domain: {fileID: 1807446694}
+  showTemperature: 0
   NumberOfStep: 64
   threashold: 0.3
   physics: {fileID: 144888394}

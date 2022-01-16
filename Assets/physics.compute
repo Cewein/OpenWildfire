@@ -1,6 +1,8 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
+#include "Commun/commun.cginc"
+
 #define PI 3.141592653589793
 #define TWOPI 6.283185307179586
 #define HALFPI 1.570796326794896
@@ -34,45 +36,14 @@ int3 coord = int3(0, 0, 0);
 int flat;
 int flatPlusOne;
 
-
-// coord test and flatten function //
-int3 coordClip(int3 p, int3 coordMax)
-{
-    int3 newCoord = int3(0, 0, 0);
-    newCoord = max(min(p, coordMax), newCoord);
-    return newCoord;
-}
-
-int flatten(int3 p)
-{
-    p = coordClip(p, int3(unitPerSide, unitPerSide, unitPerSide));
-    return p.x + unitPerSide * (p.y + unitPerSide * p.z);
-}
-
-int flattenPlusOne(int3 p)
-{
-    p = coordClip(p, int3(unitPerSide+1, unitPerSide + 1, unitPerSide + 1));
-    return p.x + (unitPerSide + 1) * (p.y + (unitPerSide + 1) * p.z);
-}
-
-bool check(int3 id)
-{
-    if (id.x < unitPerSide && id.y < unitPerSide && id.z < unitPerSide) return true;
-    return false;
-}
-
-bool checkPlusOne(int3 id)
-{
-    if (id.x < (unitPerSide + 1) && id.y < (unitPerSide + 1) && id.z < (unitPerSide + 1)) return true;
-    return false;
-}
+bool3 outofbound = bool3(false, false, false);
 
 //trilinear interpolation based on float 4 structure but only use 1 dimention.
 //b is the float 4 bufer
 //p is the point where you want to sample and interpolate
 //axe is the dimension you want to interpolate
 //plusOne is to use the array length or the array length + 1
-float interpolate(RWStructuredBuffer<float4> b, float3 p, int axe,bool plusOne)
+float interpolate(RWStructuredBuffer<float4> b, float3 p, int axe, int size)
 {
     //get the starting point of the cube
     float3 p0 = floor(p);
@@ -90,28 +61,14 @@ float interpolate(RWStructuredBuffer<float4> b, float3 p, int axe,bool plusOne)
     float x7 = 0.0;
     float x8 = 0.0;
 
-    if (!plusOne)
-    {
-        x1 = b[flatten(int3(p0.x, p0.y, p0.z))][axe];
-        x2 = b[flatten(int3(p0.x + 1, p0.y, p0.z))][axe];
-        x3 = b[flatten(int3(p0.x, p0.y + 1, p0.z))][axe];
-        x4 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z))][axe];
-        x5 = b[flatten(int3(p0.x, p0.y, p0.z + 1))][axe];
-        x6 = b[flatten(int3(p0.x + 1, p0.y, p0.z + 1))][axe];
-        x7 = b[flatten(int3(p0.x, p0.y + 1, p0.z + 1))][axe];
-        x8 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z + 1))][axe];
-    }
-    else
-    {
-        x1 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z))][axe];
-        x2 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z))][axe];
-        x3 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z))][axe];
-        x4 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z))][axe];
-        x5 = b[flattenPlusOne(int3(p0.x, p0.y, p0.z + 1))][axe];
-        x6 = b[flattenPlusOne(int3(p0.x + 1, p0.y, p0.z + 1))][axe];
-        x7 = b[flattenPlusOne(int3(p0.x, p0.y + 1, p0.z + 1))][axe];
-        x8 = b[flattenPlusOne(int3(p0.x + 1, p0.y + 1, p0.z + 1))][axe];
-    }
+    x1 = b[flatten(int3(p0.x, p0.y, p0.z),size)][axe];
+    x2 = b[flatten(int3(p0.x + 1, p0.y, p0.z), size)][axe];
+    x3 = b[flatten(int3(p0.x, p0.y + 1, p0.z), size)][axe];
+    x4 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z), size)][axe];
+    x5 = b[flatten(int3(p0.x, p0.y, p0.z + 1), size)][axe];
+    x6 = b[flatten(int3(p0.x + 1, p0.y, p0.z + 1), size)][axe];
+    x7 = b[flatten(int3(p0.x, p0.y + 1, p0.z + 1), size)][axe];
+    x8 = b[flatten(int3(p0.x + 1, p0.y + 1, p0.z + 1), size)][axe];
 
     //lerp between the x axe
     float x12 = lerp(x1, x2, deltaP.x);
@@ -135,82 +92,85 @@ float interpolate(RWStructuredBuffer<float4> b, float3 p, int axe,bool plusOne)
 // averageAxe is the axe being averaged
 // dim is the dimension use in the averaging
 // we have to do that since the MAC grid is fully integrated into a float4 array buffer
-float velocityAerage(RWStructuredBuffer<float4> b, int3 axe, int3 averageAxe,int dim)
+float velocityAerage(RWStructuredBuffer<float4> b, int3 axe, int3 averageAxe,int dim,int size)
 {
     float v = b[flatPlusOne][dim];
-    v += b[flattenPlusOne(coord - axe)][dim];
-    v += b[flattenPlusOne(coord + averageAxe - axe)][dim];
-    v += b[flattenPlusOne(coord + averageAxe)][dim];
+    v += b[flatten(coord - axe, size)][dim]; 
+    v += b[flatten(coord + averageAxe - axe, size)][dim];
+    v += b[flatten(coord + averageAxe, size)][dim];
     v /= 4;
     return v;
 }
 
-float3 advectVelocity()
+float3 advectVelocity(int size)
 {
     float3 newVec = float3(0.0, 0.0, 0.0);
 
     float3 actualCoord = float3(coord);
 
-    if (checkPlusOne(coord))
+    if (check(coord,size))
     {
         //advect vector X part
         float x = velocity[flatPlusOne].x;
-        float y = velocityAerage(velocity, int3(0, 1, 0), int3(1, 0, 0),1);
-        float z = velocityAerage(velocity, int3(0, 0, 1), int3(1, 0, 0),2);
+        float y = velocityAerage(velocity, int3(0, 1, 0), int3(1, 0, 0),1,size);
+        float z = velocityAerage(velocity, int3(0, 0, 1), int3(1, 0, 0),2,size);
         
         //interpolate Z part
         float3 OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
-        newVec.x = interpolate(velocity, OldCoord,0, true);
+        newVec.x = interpolate(velocity, OldCoord,0, size);
 
         //advect vector Y part
-        x = velocityAerage(velocity, int3(1, 0, 0), int3(0, 1, 0),0);
+        x = velocityAerage(velocity, int3(1, 0, 0), int3(0, 1, 0),0,size);
         y = velocity[flatPlusOne].y;
-        z = velocityAerage(velocity, int3(0, 0, 1), int3(0, 1, 0),2);
+        z = velocityAerage(velocity, int3(0, 0, 1), int3(0, 1, 0),2, size);
         
         //interpolate Y part
         OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
-        newVec.y = interpolate(velocity, OldCoord,1, true);
+        newVec.y = interpolate(velocity, OldCoord,1, size);
 
         //advect vector Z part
-        x = velocityAerage(velocity, int3(1, 0, 0), int3(0, 0, 1),0);
-        y = velocityAerage(velocity, int3(0, 1, 0), int3(0, 0, 1),1);
+        x = velocityAerage(velocity, int3(1, 0, 0), int3(0, 0, 1),0, size);
+        y = velocityAerage(velocity, int3(0, 1, 0), int3(0, 0, 1),1, size);
         z = velocity[flatPlusOne].z;
 
         //interpolate Z part
         OldCoord = actualCoord - iDeltaTime * float3(x, y, z);
-        newVec.z = interpolate(velocity, OldCoord,2, true);
+        newVec.z = interpolate(velocity, OldCoord,2, size);
     }
 
     return newVec;
 }
 
-float2 advectTempAndDensity()
+float2 advectTempAndDensity(int size)
 {
     float newTemp = 0.0;
     float newDensity = 0.0;
 
     float3 actualCoord = float3(coord);
 
-    if (checkPlusOne(coord))
+    if (check(coord, size))
     {
         float3 newVec = float3(0.0, 0.0, 0.0);
 
-        newVec.x = velocity[flattenPlusOne(int3(coord.x - 1, coord.y, coord.z))].x + velocity[flattenPlusOne(int3(coord.x + 1, coord.y, coord.z))].x / 2;
-        newVec.y = velocity[flattenPlusOne(int3(coord.x, coord.y - 1, coord.z))].y + velocity[flattenPlusOne(int3(coord.x, coord.y + 1, coord.z))].y / 2;
-        newVec.z = velocity[flattenPlusOne(int3(coord.x, coord.y, coord.z - 1))].z + velocity[flattenPlusOne(int3(coord.x, coord.y, coord.z + 1))].z /2;
+        newVec.x = velocity[flatten(int3(coord.x - 1, coord.y, coord.z), size+1)].x + velocity[flatten(int3(coord.x + 1, coord.y, coord.z), size+1)].x / 2;
+        newVec.y = velocity[flatten(int3(coord.x, coord.y - 1, coord.z), size+1)].y + velocity[flatten(int3(coord.x, coord.y + 1, coord.z), size+1)].y / 2;
+        newVec.z = velocity[flatten(int3(coord.x, coord.y, coord.z - 1), size+1)].z + velocity[flatten(int3(coord.x, coord.y, coord.z + 1), size+1)].z / 2;
 
-        float3 OldCoord = actualCoord - iDeltaTime * newVec;
+        float3 oldCoord = actualCoord - iDeltaTime * newVec;
 
-        newTemp = interpolate(TempAndDensity, OldCoord, 0, false);
-        newDensity = interpolate(TempAndDensity, OldCoord, 1, false);
+        if(check(oldCoord,size))
+        {
+            newTemp = interpolate(TempAndDensity, oldCoord, 0, size);
+            newDensity = interpolate(TempAndDensity, oldCoord, 1, size);
+        }
     }
 
     return float2(newTemp, newDensity);
 }
 
-float3 addExternalForces()
+float3 addExternalForces(int size)
 {
-	if (check(coord))
+	if (check(coord, size))
 	{
 		float boyancy = /*-buoyAlpha * pressure[flat] +*/ buoyBeta * (TempAndDensity[flat].x - tempAmbiant);
 
@@ -236,23 +196,23 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 {
     //global coord for the whole shader
     coord = int3(id);
-    flat = flatten(coord);
-    flatPlusOne = flattenPlusOne(coord);
+    flat = flatten(coord, unitPerSide);
+    flatPlusOne = flatten(coord, unitPerSide+1);
 
     //first step
-    float3 newVel = advectVelocity();
-    newVel += addExternalForces();
+    float3 newVel = advectVelocity(unitPerSide + 1);
+    newVel += addExternalForces(unitPerSide);
     //project();
 
     //second part
-    float2 tempAndDens = advectTempAndDensity();
+    float2 tempAndDens = advectTempAndDensity(unitPerSide);
 
 
 
-    if (checkPlusOne(coord))
+    if (check(coord, unitPerSide + 1))
         velocityNew[flatPlusOne] = float4(newVel, 1.0);
 
-    if (check(coord))
+    if (check(coord, unitPerSide))
     {
         TempAndDensity[flat].z = tempAndDens.x; //temp
         TempAndDensity[flat].w = tempAndDens.y; //density

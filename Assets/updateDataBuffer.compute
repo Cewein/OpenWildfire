@@ -1,6 +1,8 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
+#include "Commun/commun.cginc"
+
 //temperature and density
 //x and y are temperature and density
 //z and w are new temperature and new density
@@ -16,50 +18,18 @@ int unitPerSide;
 float tempAmbiant;
 float pressureAtmos;
 
-// coord test and flatten function //
-int3 coordClip(int3 coord, int3 coordMax)
-{
-    int3 newCoord = int3(0, 0, 0);
-    newCoord = max(min(coord, coordMax), newCoord);
-    return newCoord;
-}
-
-int flatten(int3 coord)
-{
-    coord = coordClip(coord, int3(unitPerSide, unitPerSide, unitPerSide));
-    return coord.x + unitPerSide * (coord.y + unitPerSide * coord.z);
-}
-
-int flattenPlusOne(int3 coord)
-{
-    coord = coordClip(coord, int3(unitPerSide + 1, unitPerSide + 1, unitPerSide + 1));
-    return coord.x + (unitPerSide + 1) * (coord.y + (unitPerSide + 1) * coord.z);
-}
-
-bool check(int3 id)
-{
-    if (id.x < unitPerSide && id.y < unitPerSide && id.z < unitPerSide) return true;
-    return false;
-}
-
-bool checkPlusOne(int3 id)
-{
-    if (id.x < (unitPerSide + 1) && id.y < (unitPerSide + 1) && id.z < (unitPerSide + 1)) return true;
-    return false;
-}
-
 
 [numthreads(4, 4, 4)]
 void CSMain (int3 id : SV_DispatchThreadID)
 {
 
-    int flat = flatten(int3(id));
-    int flatPlusOne = flattenPlusOne(int3(id));
+    int flat = flatten(int3(id), unitPerSide);
+    int flatPlusOne = flatten(int3(id), unitPerSide+1);
 
     //init each buffer before the simulation
 
     //check if inbound
-    if (check(id))
+    if (check(id, unitPerSide))
     {
         //temp
         TempAndDensity[flat].x = TempAndDensity[flat].z;
@@ -69,7 +39,7 @@ void CSMain (int3 id : SV_DispatchThreadID)
     }
 
     //another inbound cher
-    if (checkPlusOne(id))
+    if (check(id, unitPerSide+1))
     {
         velocity[flatPlusOne] = velocityNew[flatPlusOne];
     }

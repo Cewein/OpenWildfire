@@ -1,6 +1,8 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
+#include "Commun/commun.cginc"
+
 //temperature and density
 //x and y are temperature and density
 //z and w are new temperature and new density
@@ -19,62 +21,30 @@ int unitPerSide;
 float tempAmbiant;
 float pressureAtmos;
 
-// coord test and flatten function //
-int3 coordClip(int3 coord, int3 coordMax)
-{
-    int3 newCoord = int3(0, 0, 0);
-    newCoord = max(min(coord, coordMax), newCoord);
-    return newCoord;
-}
-
-int flatten(int3 coord)
-{
-    coord = coordClip(coord, int3(unitPerSide, unitPerSide, unitPerSide));
-    return coord.x + unitPerSide * (coord.y + unitPerSide * coord.z);
-}
-
-int flattenPlusOne(int3 coord)
-{
-    coord = coordClip(coord, int3(unitPerSide + 1, unitPerSide + 1, unitPerSide + 1));
-    return coord.x + (unitPerSide + 1) * (coord.y + (unitPerSide + 1) * coord.z);
-}
-
-bool check(int3 id)
-{
-    if (id.x < unitPerSide && id.y < unitPerSide && id.z < unitPerSide) return true;
-    return false;
-}
-
-bool checkPlusOne(int3 id)
-{
-    if (id.x < (unitPerSide+1) && id.y < (unitPerSide + 1) && id.z < (unitPerSide + 1)) return true;
-    return false;
-}
-
 [numthreads(4,4,4)]
 void CSMain (int3 id : SV_DispatchThreadID)
 {
 
-    uint flat = flatten(id);
-    uint flatPlusOne = flattenPlusOne(id);
+    uint flat = flatten(id, unitPerSide);
+    uint flatPlusOne = flatten(id, unitPerSide+1);
 
     //init each buffer before the simulation
     
     //check if inbound
-    if (check(id))
+    if (check(id, unitPerSide))
     {
         //temperature
-        TempAndDensity[flat].x = tempAmbiant + 30 * step(0, 10.0 - distance(float3(id), float3(unitPerSide / 2.0, 9, unitPerSide / 2.0)));
+        TempAndDensity[flat].x = tempAmbiant + 30 * step(0, 20.0 - distance(float3(id), float3(unitPerSide / 2.0, 0, unitPerSide / 2.0)));
 
         //density
-        TempAndDensity[flat].y = step(0, 10.0 - distance(float3(id), float3(unitPerSide / 2.0, 9, unitPerSide / 2.0)));
+        TempAndDensity[flat].y = step(0, 20.0 - distance(float3(id), float3(unitPerSide / 2.0, 0, unitPerSide / 2.0)));
 
         TempAndDensity[flat].z = 0.0;
         TempAndDensity[flat].w = 0.0;
     }
 
     //another inbound cher
-    if (checkPlusOne(id))
+    if (check(id, unitPerSide+1))
     {
         velocity[flatPlusOne] = float4(0.0, 0.0, 0.0, 1.0);
 

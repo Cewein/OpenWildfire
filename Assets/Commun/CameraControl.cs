@@ -16,6 +16,10 @@ public class CameraControl : MonoBehaviour
     private Vector2 clampX = new Vector2(-89, 89);
     private Vector2 rotation = new Vector2(0, 0);
 
+    bool IsMouseOverGameWindow { 
+        get { return !(0 > Input.mousePosition.x || 0 > Input.mousePosition.y || Screen.width < Input.mousePosition.x || Screen.height < Input.mousePosition.y); } 
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -26,6 +30,23 @@ public class CameraControl : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        if (Cursor.visible == true)
+        {
+            if (IsMouseOverGameWindow && Input.GetMouseButton(0))
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+
+            return;
+        }
+
         Transform camTransform = Camera.main.transform;
 
         //update rotation
@@ -34,12 +55,6 @@ public class CameraControl : MonoBehaviour
         rotation.x = Mathf.Clamp(rotation.x, clampX.x, clampX.y);
         transform.eulerAngles = rotation * speed;
         camTransform.transform.rotation = Quaternion.Euler(rotation.x, rotation.y, 0);
-
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
 
         //update position
         if (Input.GetKey(front))
